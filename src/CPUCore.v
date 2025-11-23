@@ -46,9 +46,14 @@ module CPUCore (
     wire [OUTPUT_DATA_WIDTH-1:0] in1;
     wire [OUTPUT_DATA_WIDTH-1:0] in2;
 
+
+    // Split clock into "sub-clocks" with keep attributes
+    (* keep *) wire clk_pc   = clk;  // program counter clock
+    (* keep *) wire clk_regs = clk;  // register file + ACC
+    (* keep *) wire clk_sr   = clk;  // shift register 
     // Program Counter
     // Outputs the address of the instruction being executed and increments every clk cycle
-    Counter programCounter (clk, reset, 1'b1, PCout);
+    Counter programCounter (clk_pc, reset, 1'b1, PCout);
     defparam programCounter.DATA_WIDTH = ROM_ADDRESS_WIDTH;
 
     // Program ROM
@@ -82,7 +87,7 @@ module CPUCore (
     // Regsiter File 
     // Contains A reg and B reg and O reg
     RegisterFile registerFile (
-        .clk(clk),
+        .clk(clk_regs),
         .reset(reset),
         // split switch input into A and B input
         .AIn(switches[7:4]), 
@@ -101,7 +106,7 @@ module CPUCore (
 
     // Shifter
     // Register for implimenting shift instructions and storing the results
-    ShiftRegister sr (clk, reset, shiftIn, _LSR, {_LSH,_RSH}, shiftOut, SF);
+    ShiftRegister sr (clk_sr, reset, shiftIn, _LSR, {_LSH,_RSH}, shiftOut, SF);
 
 
     // MUX for addition control flag
@@ -132,7 +137,7 @@ module CPUCore (
 
     // Accumulator (ACC)
     // Stores the results of Arithmetic or Logical operations
-    ResetEnableDFF ACC (clk, _CLR || reset, enableACC , aluOut, ACCout); 
+    ResetEnableDFF ACC (clk_regs, _CLR || reset, enableACC , aluOut, ACCout); 
     defparam ACC.DATA_WIDTH = OUTPUT_DATA_WIDTH;
 
     // CPU Output
